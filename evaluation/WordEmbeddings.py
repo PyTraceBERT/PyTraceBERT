@@ -5,7 +5,7 @@ import logging
 from tqdm import tqdm
 import numpy as np
 # from ..util import import_from_string, fullname, http_get
-from tokenizer import WordTokenizer, SpacyTokenizer
+# from .tokenizer import WordTokenizer, SpacyTokenizer
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 

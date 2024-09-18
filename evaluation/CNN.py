@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from typing import List
-from ..model.Attention import SelfAttention
+from model.Attention import SelfAttention
 
 
 class CNN(nn.Module):

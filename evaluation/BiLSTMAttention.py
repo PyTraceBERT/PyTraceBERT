@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from ..model.Attention import SelfAttention
+from model.Attention import SelfAttention
 
 
 class BiLSTMAttention(nn.Module):

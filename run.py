@@ -12,26 +12,16 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, recall_score, precision_score
-from WordEmbeddings import WordEmbeddings
-from BiLSTMAttention import BiLSTMAttention
-from tokenizer import SpacyTokenizer
-from ..data.data_augmentation import random_inplace_number
+from evaluation.WordEmbeddings import WordEmbeddings
+from evaluation.BiLSTMAttention import BiLSTMAttention
+from evaluation.CNN import CNN
+from evaluation.tokenizer import SpacyTokenizer
+from data.data_augmentation import random_inplace_number
 
-from ..util.utils import seed_everything
+from util.utils import seed_everything
 
 # logging = logging.getlogging(__name__)
 logging.basicConfig(format='%(message)s', level=logging.INFO)
-
-# def seed_everything(seed=1234):
-#     random.seed(seed)  # 设置 Python 内置的 random 模块的随机数种子
-#     # 使用如下命令查看环境变量：echo $PYTHONHASHSEED，如果没设置，则不会输出任何内容
-#     os.environ['PYTHONHASHSEED'] = str(seed)  # 设置 Python 哈希算法的随机种子，用于使得在不同的运行中哈希算法产生相同的结果
-#     np.random.seed(seed)  # 设置 NumPy 库的随机数种子
-#     torch.manual_seed(seed)  # 设置 PyTorch 库的随机数种子
-#     torch.cuda.manual_seed(seed)  # 设置 PyTorch 使用 CUDA 加速时的随机数种子。
-#     torch.cuda.manual_seed_all(seed)
-# torch.backends.cudnn.deterministic = True  # 设置 PyTorch 使用 cuDNN 加速时的行为是确定性的。
-
 seed_everything()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -41,24 +31,15 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)  # formatter_class意味着您希望在生成的帮助文本中包含每个参数的默认值
 
     args.add_argument("-dataset_folder", "--dataset_folder", type=str,
-                      default="../../dataset/Kfold/unsep", help="fine_tuning data directory")
+                      default="./dataset/Kfold/unsep", help="fine_tuning data directory")
 
     args.add_argument("-outfolder", "--outfolder", type=str,
-                      default=f"../../output/bilstm/", help="Folder name to save the models.")
+                      default=f"./output/bilstm/", help="Folder name to save the models.")
 
-    # args.add_argument("-pretrained_model_path", "--pretrained_model_path", type=str,
-    #                   default=f"bert", help="pretrained model")
-
-    # args.add_argument("-max_len", "--max_len", type=int, default=512, help="Max length of sequence")
     args.add_argument("-dropout", "--dropout", type=int, default=0.15, help="")
     args.add_argument("-epochs", "--epochs", type=int, default=15, help="Number of epochs")
     args.add_argument("-batch_size", "--batch_size", type=int, default=16, help="Batch Size")
     args.add_argument("-learning_rate", "--learning_rate", type=float, default=1e-5, help="learning_rate")
-    # args.add_argument("-hidden_dim", "--hidden_dim", type=int, default=128, help="hidden_dim")
-    # args.add_argument("-num_layers", "--num_layers", type=int, default=2, help="num_layers")
-
-    # args.add_argument("-max_excep_len", "--max_excep_len", type=int, default=50, help="Max length of sequence")
-    # args.add_argument("-max_frames_len", "--max_frames_len", type=int, default=460, help="Max length of sequence")
 
     args = args.parse_args()
 
@@ -196,16 +177,14 @@ def evaluate(model, word_embeddings, test_loader, criterion):
 
 
 def main(args):
-    embedding_file_path = 'word2vec/glove.6B.300d.txt'
+    embedding_file_path = './evaluation/word2vec/glove.6B.300d.txt'
     tokenizer = SpacyTokenizer()
     word_embeddings = WordEmbeddings.from_text_file(embedding_file_path, tokenizer=tokenizer)
 
     MODEL = 'bilstm'
-    args.outfolder = f"../../output/{MODEL}/"
+    args.outfolder = f"./output/{MODEL}/"
     # BiLSTM
-    model = BiLSTMAttention(word_embedding_dimension=word_embeddings.get_word_embedding_dimension(),
-                            hidden_dim=args.hidden_dim, num_layers=args.num_layers, dropout=args.dropout,
-                            bidirectional=True)
+    model = BiLSTMAttention(word_embedding_dimension=word_embeddings.get_word_embedding_dimension(),bidirectional=True)
     # CNN
     # model = CNN(in_word_embedding_dimension=300, dropout=args.dropout)
 
@@ -236,10 +215,10 @@ def main(args):
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
         logging.info(f"Training...")
-        _, _ = train(args, model, word_embeddings, train_loader, test_loader, val_loader, criterion, optimizer)
+        _, _ = train(args, model, word_embeddings, train_loader, val_loader, criterion, optimizer)
 
         logging.info(f"Test...")
-        result = evaluate(model, word_embeddings, test_loader)
+        result = evaluate(model, word_embeddings, test_loader, criterion)
 
         eval_losses = []
         weighted_f1 = []
@@ -262,16 +241,9 @@ def main(args):
     logging.info(avg_weighted_precision_TEXT)
 
     # 保存模型未增强数据的最终平均评估分数
-    with open(args.outfolder + f'_avg_metrics.txt', mode='a') as f:
+    with open(args.outfolder + f'{MODEL}_avg_metrics.txt', mode='a') as f:
         # f.write(f"TIME: {datetime.now()}\n")
         f.write(f"MODEL: {MODEL}\n")
-        # f.write(f"Pytorch Version: {torch.__version__}  GPU: {torch.cuda.get_device_name(0)}\n")
-        # f.write(
-        #     f"epochs: {args.epochs}, batch_size: {args.batch_size}, dropout: {args.dropout}, lr: {args.learning_rate}\n")
-        # if MODEL == 'bilstm':
-        #     f.write(f"hidden_dim: {args.hidden_dim}, num_layers: {args.num_layers}\n")
-        # if MODEL == 'cnn':
-        #     f.write(f"out_channels: {model.out_channels}, kernel_sizes: {model.kernel_sizes}\n")
         f.write(avg_eval_loss_TEXT + '\n')
         f.write(avg_weighted_f1_TEXT + '\n')
         f.write(avg_weighted_recall_TEXT + '\n')
