@@ -119,7 +119,8 @@ PyTraceBERT
 ├─fine_tuning_roberta.py 
 ├─pretrain_mlm_pytracebert.py 
 ├─pretrain_mlm_with_FEP.py
-└─pretrain_mlm_seg.py
+├─pretrain_mlm_seg.py
+└─run.py
 
 ```
 
@@ -169,7 +170,7 @@ For traditional models like CNN and BiLSTM, we utilize static [GloVe](https://do
 To run the CNN or BiLSTM baselines, execute:
 
 ```shell
-python evaluation/run.py
+python run.py
 ```
 
 To run BERT baselines, use the same command as for fine-tuning `PyTraceBERT`, but change the path to the pre-trained model:
